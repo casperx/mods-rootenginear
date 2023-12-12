@@ -1,20 +1,30 @@
 package rootenginear.livemap;
 
 import net.minecraft.core.world.chunk.Chunk;
-
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import static rootenginear.livemap.ModPaths.CHUNKS_PATH;
+import static rootenginear.livemap.ModPaths.CHUNK_LIST_FILE;
 
 public class ChunkProcessor {
-	public static void readAndDumpChunkData(int chunkX, int chunkZ, Chunk chunk) throws IOException {
-		try (FileOutputStream chunkData = new FileOutputStream(String.format("livemap/chunks/%d.%d", chunkX, chunkZ))) {
-			for (int shiftZ = 0; shiftZ < 16; shiftZ++) {
-				for (int shiftX = 0; shiftX < 16; shiftX++) {
+	private static final int CHUNK_BLOCKS = 16;
+
+	public static void dumpChunkData(Chunk chunk) throws IOException {
+		File chunkFile = ModPaths.CHUNKS_PATH
+			.resolve(String.format("%d.%d", chunk.xPosition, chunk.zPosition))
+			.toFile();
+
+		try (FileOutputStream chunkData = new FileOutputStream(chunkFile)) {
+			for (int shiftZ = 0; shiftZ < CHUNK_BLOCKS; shiftZ++) {
+				for (int shiftX = 0; shiftX < CHUNK_BLOCKS; shiftX++) {
 					short blockData = 0;
 					for (int y = chunk.getHeightValue(shiftX, shiftZ); y > -1; y--) {
 						int blockId = chunk.getBlockID(shiftX, y, shiftZ);
@@ -31,22 +41,20 @@ public class ChunkProcessor {
 		}
 	}
 
-	public static void updateChunkFile() throws IOException {
-		try (DirectoryStream<Path> dp = Files.newDirectoryStream(Paths.get("livemap", "chunks"))) {
-			StringBuilder chunkList = new StringBuilder("[");
-			boolean firstPassed = false;
+	public static void updateChunkList() throws IOException {
+		try (
+			DirectoryStream<Path> dp = Files.newDirectoryStream(CHUNKS_PATH);
+			FileWriter chunkData = new FileWriter(CHUNK_LIST_FILE)
+		) {
+			List<String> arr = new ArrayList<>();
 			for (Path path : dp) {
-				if (firstPassed) {
-					chunkList.append(",");
-				} else {
-					firstPassed = true;
-				}
-				chunkList.append("\"").append(path.getFileName()).append("\"");
+				arr.add(
+					path
+						.getFileName()
+						.toString()
+				);
 			}
-			chunkList.append("]");
-			try (FileWriter chunkData = new FileWriter("livemap/chunks.json")) {
-				chunkData.write(chunkList.toString());
-			}
+			Livemap.GSON.toJson(arr, chunkData);
 		}
 	}
 }

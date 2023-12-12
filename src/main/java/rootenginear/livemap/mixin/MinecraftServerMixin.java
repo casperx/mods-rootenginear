@@ -12,8 +12,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import rootenginear.livemap.ChunkProcessor;
 import rootenginear.livemap.Livemap;
-
+import rootenginear.livemap.json.PlayerInfo;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static rootenginear.livemap.ModPaths.PLAYER_LIST_FILE;
 
 @Mixin(value = MinecraftServer.class, remap = false)
 public class MinecraftServerMixin {
@@ -38,44 +44,44 @@ public class MinecraftServerMixin {
 	}
 
 	@Inject(method = "doTick", at = @At("TAIL"))
-	void saveChunk(CallbackInfo ci) {
+	void saveChunk(CallbackInfo ci) throws IOException  {
 		if (currentTick % CHUNK_DUMP_TIME != 0) return;
-		try {
-			WorldServer overworld = this.worldMngr[0];
-			for (EntityPlayer player : overworld.players) {
-				int chunkX = (int) player.x / 16;
-				int chunkZ = (int) player.z / 16;
-				for (int chunkShiftX = -1; chunkShiftX < 2; chunkShiftX++) {
-					for (int chunkShiftZ = -1; chunkShiftZ < 2; chunkShiftZ++) {
-						int targetChunkX = chunkX + chunkShiftX;
-						int targetChunkZ = chunkZ + chunkShiftZ;
-						Chunk chunk = overworld.chunkProviderServer.provideChunk(targetChunkX, targetChunkZ);
-						ChunkProcessor.readAndDumpChunkData(targetChunkX, targetChunkZ, chunk);
-						Livemap.LOGGER.info("Chunk " + targetChunkX + "," + targetChunkZ + " dumped!");
-					}
+
+		WorldServer overworld = this.worldMngr[0];
+
+		for (EntityPlayer player : overworld.players) {
+			int chunkX = (int) player.x / 16;
+			int chunkZ = (int) player.z / 16;
+
+			for (int chunkShiftX = -1; chunkShiftX < 2; chunkShiftX++) {
+				for (int chunkShiftZ = -1; chunkShiftZ < 2; chunkShiftZ++) {
+					int targetChunkX = chunkX + chunkShiftX;
+					int targetChunkZ = chunkZ + chunkShiftZ;
+
+					Chunk chunk = overworld.chunkProviderServer.provideChunk(targetChunkX, targetChunkZ);
+					ChunkProcessor.dumpChunkData(chunk);
+					Livemap.LOGGER.info("Chunk " + targetChunkX + "," + targetChunkZ + " dumped!");
 				}
 			}
-			ChunkProcessor.updateChunkFile();
-		} catch (Exception ignored) {
 		}
+
+		ChunkProcessor.updateChunkList();
 	}
 
 	@Inject(method = "doTick", at = @At("TAIL"))
-	void savePlayer(CallbackInfo ci) {
+	void savePlayer(CallbackInfo ci) throws IOException {
 		if (currentTick % PLAYER_DUMP_TIME != 0) return;
-		try {
-			WorldServer overworld = this.worldMngr[0];
-			StringBuilder playerListJSON = new StringBuilder("{");
-			for (int i = 0; i < overworld.players.size(); i++) {
-				if (i > 0) playerListJSON.append(",");
-				EntityPlayer player = overworld.players.get(i);
-				playerListJSON.append(String.format("\"%s\":[%g,%g]", player.username, player.x, player.z));
-			}
-			playerListJSON.append("}");
-			try (FileWriter chunkData = new FileWriter("livemap/players.json")) {
-				chunkData.write(playerListJSON.toString());
-			}
-		} catch (Exception ignored) {
+
+		List<EntityPlayer> players = this.worldMngr[0].players;
+		Map<String, PlayerInfo> obj = new HashMap<>();
+
+        for (EntityPlayer player : players) {
+			PlayerInfo p = new PlayerInfo(player.x, player.z);
+            obj.put(player.username, p);
+        }
+
+		try (FileWriter chunkData = new FileWriter(PLAYER_LIST_FILE)) {
+			Livemap.GSON.toJson(obj, chunkData);
 		}
 	}
 }
