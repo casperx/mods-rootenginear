@@ -103,6 +103,8 @@ const updateCanvasSize = () => {
   canvas.height = canvas.offsetHeight
 
   ctx.imageSmoothingEnabled = false
+
+  drawCanvas()
 }
 
 window.addEventListener('resize', updateCanvasSize)
