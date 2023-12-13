@@ -26,7 +26,7 @@ public class ChunkProcessor {
 			for (int shiftZ = 0; shiftZ < CHUNK_BLOCKS; shiftZ++) {
 				for (int shiftX = 0; shiftX < CHUNK_BLOCKS; shiftX++) {
 					short blockData = 0;
-					for (int y = chunk.getHeightValue(shiftX, shiftZ); y > -1; y--) {
+					for (int y = chunk.getHeightValue(shiftX, shiftZ); y >= 0; y--) {
 						int blockId = chunk.getBlockID(shiftX, y, shiftZ);
 						if (blockId != 0) {
 							int metadata = chunk.getBlockMetadata(shiftX, y, shiftZ);

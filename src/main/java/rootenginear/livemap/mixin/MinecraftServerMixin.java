@@ -53,14 +53,13 @@ public class MinecraftServerMixin {
 			int chunkX = (int) player.x / 16;
 			int chunkZ = (int) player.z / 16;
 
-			for (int chunkShiftX = -1; chunkShiftX < 2; chunkShiftX++) {
-				for (int chunkShiftZ = -1; chunkShiftZ < 2; chunkShiftZ++) {
+			for (int chunkShiftX = -1; chunkShiftX <= -1; chunkShiftX++) {
+				for (int chunkShiftZ = -1; chunkShiftZ <= -1; chunkShiftZ++) {
 					int targetChunkX = chunkX + chunkShiftX;
 					int targetChunkZ = chunkZ + chunkShiftZ;
 
 					Chunk chunk = overworld.chunkProviderServer.provideChunk(targetChunkX, targetChunkZ);
 					ChunkProcessor.dumpChunkData(chunk);
-					Livemap.LOGGER.info("Chunk " + targetChunkX + "," + targetChunkZ + " dumped!");
 				}
 			}
 		}
